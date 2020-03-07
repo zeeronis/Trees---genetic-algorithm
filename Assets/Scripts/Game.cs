@@ -11,11 +11,11 @@ public class Game : MonoBehaviour
     [SerializeField] private Text allDieTimesText;
     [SerializeField] private Text generationText;
 
-    private int framesCount = 0;
     private bool isStarted = false;
+    private bool isPaused = false;
     private bool isInited = false;
 
-    private const float gameTickTime = 0.01f;
+    private float gameTickInterval = 0.05f;
     private float nextUpdateTime = 0;
 
     private double iterationCount = 0;
@@ -26,7 +26,6 @@ public class Game : MonoBehaviour
     {
         StartCoroutine(InitView());
         StartCoroutine(UpdateUIPerSecond());
-        StartCoroutine(FrameCounter());
     }
 
     private PixelViewUI view;
@@ -35,9 +34,16 @@ public class Game : MonoBehaviour
 
     private List<Tree> trees = new List<Tree>();
 
+    private float deltaTime = 0.0f;
+
+    void Update()
+    {
+        deltaTime += (Time.unscaledDeltaTime - deltaTime) * 0.1f;
+    }
+
     private void FixedUpdate()
     {
-        if (!isStarted)
+        if (!isStarted || isPaused)
             return;
 
         if (!isInited)
@@ -50,7 +56,7 @@ public class Game : MonoBehaviour
         if (nextUpdateTime > Time.time)
             return;
 
-        nextUpdateTime = Time.time + gameTickTime;
+        nextUpdateTime = Time.time + gameTickInterval;
 
 
         Iteration();
@@ -60,8 +66,11 @@ public class Game : MonoBehaviour
     private List<Tree> growedTrees = new List<Tree>();
     private List<Tree> removeTrees = new List<Tree>();
     private List<Cell> growedCells = new List<Cell>();
+
     private CellType[,] lastCells = new CellType[mapX, mapY];
     private CellType[,] cells = new CellType[mapX, mapY];
+    private Color[,] cellsColor = new Color[mapX, mapY];
+    private Color seedColor = Color.white;
 
     private void Iteration()
     {
@@ -113,12 +122,15 @@ public class Game : MonoBehaviour
             {
                 if (cell.isWood)
                 {
-                    incomeEnergy += GetCellEnergyInc(cell.pos.x, cell.pos.y);
                     cells[cell.pos.x, cell.pos.y] = CellType.wood;
+                    cellsColor[cell.pos.x, cell.pos.y] = tree.color;
+
+                    incomeEnergy += GetCellEnergyInc(cell.pos.x, cell.pos.y);
                 }
                 else
                 {
                     cells[cell.pos.x, cell.pos.y] = CellType.seed;
+
                     allIsWood = false;
                     cell.needEnergy -= GetCellEnergyInc(cell.pos.x, cell.pos.y);
                     if(cell.needEnergy <= 0)
@@ -165,6 +177,8 @@ public class Game : MonoBehaviour
     {
         cell.isWood = true;
         cells[cell.pos.x, cell.pos.y] = CellType.wood;
+        cellsColor[cell.pos.x, cell.pos.y] = tree.color;
+
 
         for (int sideNUm = 0; sideNUm < 4; sideNUm++)
         {
@@ -254,6 +268,7 @@ public class Game : MonoBehaviour
                     growedTree.color = new Color(tree.color.r, tree.color.g, tree.color.b);
                 }
                 cells[growedTree.cells[0].pos.x, growedTree.cells[0].pos.y] = CellType.seed;
+                cellsColor[growedTree.cells[0].pos.x, growedTree.cells[0].pos.y] = growedTree.color;
                 i--;
             }
             else if(cells[tree.cells[i].pos.x, tree.cells[i].pos.y] == CellType.empty)
@@ -284,13 +299,6 @@ public class Game : MonoBehaviour
         return sunLevel * energyMod;
     }
 
-    private Dictionary<CellType, Color> colors = new Dictionary<CellType, Color>()
-    {
-        [CellType.empty] = Color.black,
-        [CellType.wood] = Color.green,
-        [CellType.seed] = Color.white,
-        [CellType.fallSeed] = Color.white,
-    };
     private void DrawMap()
     {
         /*
@@ -310,7 +318,18 @@ public class Game : MonoBehaviour
             {
                 if(lastCells[x,y] != cells[x, y])
                 {
-                    view.SetPixelIn(x, y, colors[cells[x, y]]);
+                    if (cells[x,y] == CellType.empty)
+                    {
+                        view.SetPixelIn(x, y, view.defaultBackgroundColor);
+                    }
+                    else if (cells[x, y] == CellType.wood)
+                    {
+                        view.SetPixelIn(x, y, cellsColor[x, y]);
+                    }
+                    else
+                    {
+                        view.SetPixelIn(x, y, seedColor);
+                    }
                 }
             }
         }
@@ -362,25 +381,40 @@ public class Game : MonoBehaviour
             }
         }
     }
-    private IEnumerator FrameCounter()
-    {
-        while (true)
-        {
-            yield return new WaitForEndOfFrame();
-            framesCount++;
-        }
-    }
     private IEnumerator UpdateUIPerSecond()
     {
         while (true)
         {
             yield return new WaitForSeconds(1);
-            fpsText.text = framesCount.ToString();
-            framesCount = 0;
 
+            fpsText.text = "FPS: " + (int)(1f / Time.deltaTime);
             allDieTimesText.text = "Restarts: " + restartsCount;
             iterationText.text = "Iterations: " + iterationCount;
             generationText.text = "Best generation: " + maxCurrGeneration;
         }
+    }
+
+    public void SpeedUp()
+    {
+        if(gameTickInterval > 0.01f)
+        {
+            gameTickInterval -= 0.01f;
+        }
+    }
+
+    public void SpeedDown()
+    {
+        gameTickInterval += 0.01f;
+    }
+
+    public void Restart()
+    {
+        trees.Clear();
+        GenerateTrees();
+    }
+
+    public void Pause()
+    {
+        isPaused = !isPaused;
     }
 }

@@ -67,12 +67,9 @@ public class Genome
         for (int i = 0; i < genome.gens.Length; i++)
         {
             genome.gens[i] = new Gen();
-        }
-        foreach (var gen in genome.gens)
-        {
-            for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
             {
-                gen.sides[i] = Random.Range(0, 31);
+                genome.gens[i].sides[j] = Random.Range(0, 31);
             }
         }
         return genome;
@@ -84,48 +81,13 @@ public class Genome
         {
             generation = generation
         };
-        /*for (int i = 0; i < 15; i++)
+        for (int i = 0; i < 15; i++)
         {
             clone.gens[i] = new Gen();
             for (int j = 0; j < gens[i].sides.Length; j++ )
             {
                 clone.gens[i].sides[j] = gens[i].sides[j];
             }
-        }*/
-        clone.gens[0] = new Gen();
-        clone.gens[1] = new Gen();
-        clone.gens[2] = new Gen();
-        clone.gens[3] = new Gen();
-        clone.gens[4] = new Gen();
-        clone.gens[5] = new Gen();
-        clone.gens[6] = new Gen();
-        clone.gens[7] = new Gen();
-        clone.gens[8] = new Gen();
-        clone.gens[9] = new Gen();
-        clone.gens[10] = new Gen();
-        clone.gens[11] = new Gen();
-        clone.gens[12] = new Gen();
-        clone.gens[13] = new Gen();
-        clone.gens[14] = new Gen();
-
-        for (int j = 0; j < 4; j++)
-        {
-            clone.gens[0].sides[j] = gens[0].sides[j];
-            clone.gens[1].sides[j] = gens[1].sides[j];
-            clone.gens[2].sides[j] = gens[2].sides[j];
-            clone.gens[3].sides[j] = gens[3].sides[j];
-            clone.gens[4].sides[j] = gens[4].sides[j];
-            clone.gens[5].sides[j] = gens[5].sides[j];
-            clone.gens[6].sides[j] = gens[6].sides[j];
-            clone.gens[7].sides[j] = gens[7].sides[j];
-            clone.gens[8].sides[j] = gens[8].sides[j];
-            clone.gens[9].sides[j] = gens[9].sides[j];
-            clone.gens[10].sides[j] = gens[10].sides[j];
-            clone.gens[1].sides[j] = gens[11].sides[j];
-            clone.gens[12].sides[j] = gens[12].sides[j];
-            clone.gens[13].sides[j] = gens[13].sides[j];
-            clone.gens[14].sides[j] = gens[14].sides[j];
-
         }
         return clone;
     }
