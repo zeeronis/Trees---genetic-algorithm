@@ -21,20 +21,27 @@ public class Game : MonoBehaviour
     private double iterationCount = 0;
     private double maxCurrGeneration = 0;
     private double restartsCount = 0;
+    private float deltaTime = 0.0f;
+
+    private const int mapX = 240;
+    private const int mapY = 50;
+    private PixelViewUI view;
+
+    private List<Tree> trees = new List<Tree>();
+    private List<Tree> growedTrees = new List<Tree>();
+    private List<Tree> removeTrees = new List<Tree>();
+    private List<Cell> growedCells = new List<Cell>();
+
+    private CellType[,] lastCells = new CellType[mapX, mapY];
+    private CellType[,] cells = new CellType[mapX, mapY];
+    private Color[,] cellsColor = new Color[mapX, mapY];
+    private Color seedColor = Color.white;
 
     private void Start()
     {
         StartCoroutine(InitView());
         StartCoroutine(UpdateUIPerSecond());
     }
-
-    private PixelViewUI view;
-    private const int mapX = 240;
-    private const int mapY = 50;
-
-    private List<Tree> trees = new List<Tree>();
-
-    private float deltaTime = 0.0f;
 
     void Update()
     {
@@ -58,19 +65,9 @@ public class Game : MonoBehaviour
 
         nextUpdateTime = Time.time + gameTickInterval;
 
-
         Iteration();
         DrawMap();
     }
-
-    private List<Tree> growedTrees = new List<Tree>();
-    private List<Tree> removeTrees = new List<Tree>();
-    private List<Cell> growedCells = new List<Cell>();
-
-    private CellType[,] lastCells = new CellType[mapX, mapY];
-    private CellType[,] cells = new CellType[mapX, mapY];
-    private Color[,] cellsColor = new Color[mapX, mapY];
-    private Color seedColor = Color.white;
 
     private void Iteration()
     {
@@ -97,6 +94,11 @@ public class Game : MonoBehaviour
         int incomeEnergy;
         foreach (var tree in trees)
         {
+            if (tree.cells.Count != 0 && maxCurrGenerate < tree.cells[0].genome.generation)
+            {
+                maxCurrGenerate = tree.cells[0].genome.generation;
+            }
+
             if (tree.isDie)
             {
                 if (tree.cells.Count == 0)
@@ -152,11 +154,6 @@ public class Game : MonoBehaviour
                 tree.isDie = true;
                 DestoyTree(tree);
                 continue;
-            }
-
-            if(maxCurrGenerate < tree.cells[0].genome.generation)
-            {
-                maxCurrGenerate = tree.cells[0].genome.generation;
             }
         }
         foreach (var tree in removeTrees)
@@ -392,6 +389,16 @@ public class Game : MonoBehaviour
             iterationText.text = "Iterations: " + iterationCount;
             generationText.text = "Best generation: " + maxCurrGeneration;
         }
+    }
+
+    public void SaveGenomes()
+    {
+
+    }
+
+    public void LoadGenomes()
+    {
+
     }
 
     public void SpeedUp()
