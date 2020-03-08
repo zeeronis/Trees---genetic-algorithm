@@ -6,17 +6,111 @@ using UnityEngine;
 
 public class Tree
 {
-    public int age = 0;
-    public int energy = 300;
     public bool isDie;
-    public Color color;
+    public int age;
+    public int energy;
     public List<Cell> cells = new List<Cell>();
+
+    public void SetInitialValues()
+    {
+        isDie = false;
+        age = 0;
+        energy = 300;
+    }
 
     public void DecreaseEnergy()
     {
         age++;
-        energy -= cells.Count *  13;
+        energy -= cells.Count * 13;
     }
+
+    public void ClearAllCells()
+    {
+        foreach (var cell in cells)
+        {
+            cell.cellType = CellType.empty;
+        }
+        cells.Clear();
+    }
+
+    public void ClearWoodCells()
+    {
+        for (int i = 0; i < cells.Count; i++)
+        {
+            if (cells[i].cellType == CellType.wood)
+            {
+                cells[i].cellType = CellType.empty;
+                cells.Remove(cells[i]);
+                i--;
+            }
+        }
+    }
+}
+
+public class Cell
+{
+    public CellType cellType = CellType.empty;
+    public Color color = new Color() { a = 1f};
+    public Vector2Int pos;
+
+    public int needEnergy;
+    public int activeGen;
+
+    public Genome genome = new Genome();
+
+    public void SetInitialValues()
+    {
+        cellType = CellType.seed;
+        needEnergy = 18;
+        activeGen = 0;
+    }
+
+    public void SetRandomGenome()
+    {
+        genome.generation = 0;
+        foreach (var gen in genome.gens)
+        {
+            for (int i = 0; i < gen.sides.Length; i++)
+            {
+                gen.sides[i] = Random.Range(0, 31);
+            }
+        }
+    }
+
+    public void CopyGenome(Genome _genome)
+    {
+        genome.generation = _genome.generation;
+        for (int i = 0; i < _genome.gens.Length; i++)
+        {
+            for (int j = 0; j < _genome.gens[i].sides.Length; j++)
+            {
+                genome.gens[i].sides[j] = _genome.gens[i].sides[j];
+            }
+        }
+    }
+
+    public void SetRandomColor()
+    {
+        color.r = Random.Range(0f, 1f);
+        color.g = Random.Range(0f, 1f);
+        color.b = Random.Range(0f, 1f);
+    }
+
+    public void ClearGenome()
+    {
+        genome.generation = 0;
+    }
+}
+
+public class Genome
+{
+    public int generation = 0;
+    public Gen[] gens = new Gen[15];
+}
+
+public class Gen
+{
+    public int[] sides = new int[4];
 }
 
 public enum CellType
@@ -25,85 +119,6 @@ public enum CellType
     wood,
     seed,
     fallSeed
-}
-
-public class Cell
-{
-    public Vector2Int pos = new Vector2Int();
-
-    public int needEnergy = 18;
-    public int activeGen = 0;
-    public bool isWood;
-    public Genome genome;
-
-    public Cell GetNextSeed(int side)
-    {
-        if (genome.gens[activeGen].sides[side] < 15)
-            return new Cell()
-            {
-                genome = genome.Clone(),
-                activeGen = genome.gens[activeGen].sides[side]
-            };
-        return null;
-    }
-}
-
-public class Genome
-{
-    public int generation = 0;
-    public Gen[] gens = new Gen[15];
-
-    public void MutateGenome(int chance)
-    {
-        if (Random.Range(0, 101) > chance)
-            return;
-
-        gens[Random.Range(0, 15)].sides[Random.Range(0, 4)] = Random.Range(0, 31);
-    }
-
-    public static Genome GetRandomeGenome()
-    {
-        var genome = new Genome();
-        for (int i = 0; i < genome.gens.Length; i++)
-        {
-            genome.gens[i] = new Gen();
-            for (int j = 0; j < 4; j++)
-            {
-                genome.gens[i].sides[j] = Random.Range(0, 31);
-            }
-        }
-        return genome;
-    }
-
-    public Genome Clone()
-    {
-        var clone = new Genome()
-        {
-            generation = generation
-        };
-        for (int i = 0; i < 15; i++)
-        {
-            clone.gens[i] = new Gen();
-            for (int j = 0; j < gens[i].sides.Length; j++ )
-            {
-                clone.gens[i].sides[j] = gens[i].sides[j];
-            }
-        }
-        return clone;
-    }
-}
-
-public class Gen
-{
-    public int[] sides = new int[4];
-}
-
-public enum Side
-{
-    Up,
-    Down,
-    Left,
-    Right
 }
 
 //эволюция: 25% у нового семечка происходит мутация. Меняется случайным образом одно из чисел в геноме

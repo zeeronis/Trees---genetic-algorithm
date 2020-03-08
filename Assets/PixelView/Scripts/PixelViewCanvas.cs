@@ -6,10 +6,10 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class PixelViewUI: MonoBehaviour
+public class PixelViewCanvas: MonoBehaviour
 {
-    private static PixelViewUI instance;
-    public static PixelViewUI Instance { get => instance; set => instance = value; }
+    private static PixelViewCanvas instance;
+    public static PixelViewCanvas Instance { get => instance; set => instance = value; }
 
     private const float pixelOffset = 1f;
 
@@ -27,7 +27,7 @@ public class PixelViewUI: MonoBehaviour
     public PixelUI[,] pixels;
 
   
-    private void Start()
+    private void Awake()
     {
         if (Instance == null)
             Instance = this;
@@ -45,27 +45,8 @@ public class PixelViewUI: MonoBehaviour
 
     public void SetPixelIn(int x, int y, Color color)
     {
-        if(pixels[x, y].color.r == color.r &&
-            pixels[x, y].color.g == color.g &&
-            pixels[x, y].color.b == color.b)
-            return;
-
         pixels[x, y].image.color = color;
         pixels[x, y].color = color;
-
-        if(pixelsOutlineEnable == true)
-        {
-            if (pixels[x, y].color.r == backgroundImage.color.r &&
-            pixels[x, y].color.g == backgroundImage.color.g &&
-            pixels[x, y].color.b == backgroundImage.color.b)
-            {
-                pixels[x, y].outline.enabled = false;
-            }
-            else if (pixels[x, y].outline.enabled == false)
-            {
-                pixels[x, y].outline.enabled = true;
-            }
-        }
     }
 
     public Color GetPixelIn(int x, int y)
@@ -109,7 +90,6 @@ public class PixelViewUI: MonoBehaviour
                 var pixel = Instantiate(pixelPrefab, backgroundTransform);
                 pixel.image.color = defaultPixelsColor;
                 pixel.color = defaultPixelsColor;
-                pixel.outline.enabled = defaultPixelsColor == defaultBackgroundColor ? false : pixelsOutlineEnable;
                 pixels[x, y] = pixel;
 
                 var rectTransform = pixel.GetComponent<RectTransform>();
