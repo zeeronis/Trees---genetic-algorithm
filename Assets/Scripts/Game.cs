@@ -281,6 +281,10 @@ public class Game : MonoBehaviour
                 {
                     growedTree.cells[0].SetRandomColor();
                 }
+                if(UnityEngine.Random.Range(0,101) < 25)
+                {
+                    growedTree.cells[0].MutateGenome();
+                }
 
                 continue;
             }

@@ -47,6 +47,12 @@ public class Cell
         }
     }
 
+    public void MutateGenome()
+    {
+        genome.gens[Random.Range(0, genome.gens.Length)]
+            .sides[Random.Range(0, genome.gens[0].sides.Length)] = Random.Range(0, 31);
+    }
+
     public void SetRandomColor()
     {
         color.r = Random.Range(0f, 1f);
