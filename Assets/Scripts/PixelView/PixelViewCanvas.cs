@@ -46,13 +46,13 @@ public class PixelViewCanvas: MonoBehaviour
     public void SetPixelIn(int x, int y, Color color)
     {
         pixels[x, y].image.color = color;
-        pixels[x, y].color = color;
+        //pixels[x, y].color = color;
     }
 
-    public Color GetPixelIn(int x, int y)
+   /* public Color GetPixelIn(int x, int y)
     {
         return pixels[x, y].color;
-    }
+    }*/
 
     public bool IsDefaultPixel(int x, int y)
     {

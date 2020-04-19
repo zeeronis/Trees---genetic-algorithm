@@ -40,7 +40,7 @@ public class Tree
             if (cells[i].cellType == CellType.wood)
             {
                 cells[i].cellType = CellType.empty;
-                cells.Remove(cells[i]);
+                cells.RemoveAt(i);
                 i--;
             }
         }

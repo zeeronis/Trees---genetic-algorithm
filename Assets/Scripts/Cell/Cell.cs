@@ -7,6 +7,7 @@ using UnityEngine;
 
 public class Cell
 {
+    public Tree fallSeedTree;
     public CellType cellType = CellType.empty;
     public Color color = new Color() { a = 1f };
     public Vector2Int pos;

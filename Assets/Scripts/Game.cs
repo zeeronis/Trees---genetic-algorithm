@@ -27,12 +27,12 @@ public class Game : MonoBehaviour
     private Color defaultColor = Color.black;
 
     private List<Tree> trees = new List<Tree>();
+    private List<Tree> treesPool = new List<Tree>();
     private List<Tree> growedTrees = new List<Tree>();
-    private List<Tree> removeTrees = new List<Tree>();
     private List<Cell> growedCells = new List<Cell>();
 
     private Cell[,] cells;
-    private Color[,] lastCellsColor;
+    private CellType[,] lastCellsType;
 
     private void Start()
     {
@@ -40,12 +40,13 @@ public class Game : MonoBehaviour
         view.InitView(new Vector2Int(mapSize.x, mapSize.y), Color.black, 6, false);
 
         cells = new Cell[mapSize.x, mapSize.y];
-        lastCellsColor = new Color[mapSize.x, mapSize.y];
+        lastCellsType = new CellType[mapSize.x, mapSize.y];
+
         for (int y = 0; y < mapSize.y; y++)
         {
             for (int x = 0; x < mapSize.x; x++)
             {
-                lastCellsColor[x, y] = new Color();
+                lastCellsType[x, y] = CellType.empty;
 
                 cells[x, y] = new Cell
                 {
@@ -87,11 +88,11 @@ public class Game : MonoBehaviour
         nextUpdateTime = Time.time + gameTickInterval;
 
 
-        Iteration();
+        Iteration_1();
         DrawMap();
     }
 
-    private void Iteration()
+    /*private void Iteration()
     {
         if (trees.Count == 0)
         {
@@ -181,6 +182,106 @@ public class Game : MonoBehaviour
         growedTrees.Clear();
 
         maxGeneration = treeMaxGenerate;
+    }*/
+
+    private void Iteration_1()
+    {
+        if (trees.Count == 0)
+        {
+            iterationCount = 0;
+            restartsCount++;
+            InitNewGeneration();
+            return;
+        }
+
+        iterationCount++;
+
+        double treeMaxGenerate = 0;
+        for (int treeIndex = 0; treeIndex < trees.Count; treeIndex++)
+        {
+            Tree tree = trees[treeIndex];
+
+            if (tree.isDie)
+            {
+                if (tree.cells.Count == 0)
+                {
+                    ReturnTreeToPool(tree);
+                    treeIndex--;
+                }
+                else
+                {
+                    FallSeeds(tree);
+                }
+
+                continue;
+            }
+            else if (tree.cells.Count == 1 && tree.age >= 5)
+            {
+                tree.ClearAllCells();
+                ReturnTreeToPool(tree);
+                treeIndex--;
+
+                continue;
+            }
+
+            if (treeMaxGenerate < tree.cells[0].genome.generation)
+            {
+                treeMaxGenerate = tree.cells[0].genome.generation;
+            }
+
+            int treeIncomeEnergy = 0;
+            bool allIsWood = true;
+            for (int cellIndex = 0; cellIndex < tree.cells.Count; cellIndex++)
+            {
+                Cell cell = tree.cells[cellIndex];
+
+                if (cell.cellType == CellType.wood)
+                {
+                    treeIncomeEnergy += GetCellEnergyInc(cell.pos.x, cell.pos.y);
+                }
+                else
+                {
+                    allIsWood = false;
+                    cell.needEnergy -= GetCellEnergyInc(cell.pos.x, cell.pos.y);
+
+                    if (cell.needEnergy <= 0)
+                    {
+                        SeedGrow(tree, cell);
+                    }
+                }
+            }
+
+            for (int i = 0; i < growedCells.Count; i++)
+            {
+                tree.cells.Add(growedCells[i]);
+            }
+            growedCells.Clear();
+
+            tree.energy += treeIncomeEnergy;
+            tree.DecreaseEnergy();
+            if (tree.energy < 0 || tree.age > 90 || allIsWood)
+            {
+                tree.isDie = true;
+                tree.ClearWoodCells();
+
+                if (allIsWood)
+                {
+                    ReturnTreeToPool(tree);
+                    treeIndex--;
+                }
+               
+                continue;
+            }
+
+        }
+
+        foreach (var tree in growedTrees)
+        {
+            trees.Add(tree);
+        }
+        growedTrees.Clear();
+
+        maxGeneration = treeMaxGenerate;
     }
 
     private void SeedGrow(Tree tree, Cell cell)
@@ -226,8 +327,13 @@ public class Game : MonoBehaviour
             if (seedCell == null)
                 continue;
 
-            if (seedCell.cellType == CellType.empty)
+            if (seedCell.cellType == CellType.fallSeed || 
+                seedCell.cellType == CellType.empty)
             {
+                if(seedCell.cellType == CellType.fallSeed)
+                {
+                    seedCell.fallSeedTree.cells.Remove(seedCell);
+                }
                 growedCells.Add(seedCell);
                 seedCell.SetInitialValues();
                 seedCell.CopyGenome(cell.genome);
@@ -239,21 +345,23 @@ public class Game : MonoBehaviour
 
     private int GetCellEnergyInc(int x, int y)
     {
+        int maxY = mapSize.y;
         int energyModify = 3;
 
-        for (int currY = y + 1; currY < mapSize.y; currY++)
+        for (int currY = y + 1; currY < maxY; currY++)
         {
             if (cells[x, currY].cellType == CellType.wood)
             {
                 energyModify--;
-            }
 
-            if (energyModify == 0)
-                return 0;
+                if (energyModify == 0)
+                    return 0;
+            }
         }
 
-        int sunLevel = 6 + y > 16 ? 16 : 6 + y;
-        return sunLevel * energyModify;
+        return 6 + y > 16 
+            ? 16 * energyModify
+            : (6 + y) * energyModify;
     }
 
     private void FallSeeds(Tree tree)
@@ -263,11 +371,12 @@ public class Game : MonoBehaviour
             if(tree.cells[i].cellType == CellType.seed)
             {
                 tree.cells[i].cellType = CellType.fallSeed;
+                tree.cells[i].fallSeedTree = tree;
             }
 
             if(tree.cells[i].pos.y == 0)
             {
-                var growedTree = new Tree();
+                var growedTree = GetNewTree();
                 growedTree.SetInitialValues();
                 growedTrees.Add(growedTree);
 
@@ -317,12 +426,13 @@ public class Game : MonoBehaviour
         {
             for (int y = 0; y < mapSize.y; y++)
             {
-                lastCellsColor[x, y] = Color.black;
+                lastCellsType[x, y] = CellType.empty;
             }
         }
 
         foreach (var tree in trees)
         {
+            treesPool.Add(tree);
             tree.ClearAllCells();
         }
         trees.Clear();
@@ -336,7 +446,7 @@ public class Game : MonoBehaviour
 
     private Tree InitNewRandomTree(int x, int y)
     {
-        var tree = new Tree();
+        var tree = GetNewTree();
         tree.SetInitialValues();
 
         tree.cells.Add(cells[x, y]);
@@ -348,31 +458,53 @@ public class Game : MonoBehaviour
 
     private void DrawMap()
     {
-        for (int y = 0; y < mapSize.y; y++)
+        int maxY = mapSize.y;
+        int maxX = mapSize.x;
+
+        for (int y = 0; y < maxY; y++)
         {
-            for (int x = 0; x < mapSize.x; x++)
+            for (int x = 0; x < maxX; x++)
             {
-                if (cells[x, y].cellType == CellType.empty &&
-                    !ColorsEqual(ref lastCellsColor[x, y], ref defaultColor))
+                if(cells[x, y].cellType != lastCellsType[x, y])
                 {
-                    view.SetPixelIn(x, y, defaultColor);
-                    lastCellsColor[x, y] = defaultColor;
-                }
-                else if (cells[x, y].cellType == CellType.wood &&
-                    !ColorsEqual(ref lastCellsColor[x, y], ref cells[x, y].color))
-                {
-                    view.SetPixelIn(x, y, cells[x, y].color);
-                    lastCellsColor[x, y] = cells[x, y].color;
-                }
-                else if((cells[x, y].cellType == CellType.seed || 
-                    cells[x, y].cellType == CellType.fallSeed) && 
-                    !ColorsEqual(ref lastCellsColor[x, y], ref seedColor))
-                {
-                    view.SetPixelIn(x, y, seedColor);
-                    lastCellsColor[x, y] = seedColor;
+                    if (cells[x, y].cellType == CellType.empty)
+                    {
+                        view.SetPixelIn(x, y, defaultColor);
+                        lastCellsType[x, y] = cells[x, y].cellType;
+                    }
+                    else if (cells[x, y].cellType == CellType.wood)
+                    {
+                        view.SetPixelIn(x, y, cells[x, y].color);
+                        lastCellsType[x, y] = cells[x, y].cellType;
+                    }
+                    else if ((cells[x, y].cellType == CellType.seed || 
+                              cells[x, y].cellType == CellType.fallSeed))
+                    {
+                        view.SetPixelIn(x, y, seedColor);
+                        lastCellsType[x, y] = cells[x, y].cellType;
+                    }
                 }
             }
         }
+    }
+
+    private Tree GetNewTree()
+    {
+        if (treesPool.Count != 0)
+        {
+            Tree tree = treesPool[0];
+            treesPool.RemoveAt(0);
+
+            return tree;
+        }
+
+        return new Tree();
+    }
+
+    private void ReturnTreeToPool(Tree tree)
+    {
+        treesPool.Add(tree);
+        trees.Remove(tree);
     }
 
     private bool ColorsEqual(ref Color c1, ref Color c2)
