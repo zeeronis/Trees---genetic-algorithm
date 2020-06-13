@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using stg = SimSettings;
 
 public class Cell
 {
@@ -17,10 +18,11 @@ public class Cell
 
     public Genome genome = new Genome();
 
-    public void SetInitialValues()
+
+    public void SetSeedInitialValues()
     {
         cellType = CellType.seed;
-        needEnergy = 18;
+        needEnergy = stg.Instance.reqEnergyForGrow;
         activeGen = 0;
     }
 

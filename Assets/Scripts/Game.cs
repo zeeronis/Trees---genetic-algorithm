@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using stg = SimSettings;
 
 public class Game : MonoBehaviour
 {
@@ -11,17 +12,18 @@ public class Game : MonoBehaviour
     [SerializeField] private Text allDieTimesText;
     [SerializeField] private Text generationText;
 
+
     private double iterationCount = 0;
     private double maxGeneration = 0;
     private double restartsCount = 0;
-    private float deltaTime = 0.0f;
 
     public bool isRunning = false;
-    private float gameTickInterval = 0.05f;
+    private bool isCanUpdate = true;
     private float nextUpdateTime = 0;
 
+
     private PixelViewCanvas view;
-    private readonly Vector2Int mapSize = new Vector2Int(115, 50);
+    private Vector2Int mapSize;
 
     private Color seedColor = Color.white;
     private Color defaultColor = Color.black;
@@ -34,10 +36,14 @@ public class Game : MonoBehaviour
     private Cell[,] cells;
     private CellType[,] lastCellsType;
 
+
     private void Start()
     {
+        isCanUpdate = true;
+
+        mapSize = stg.Instance.mapSize;
         view = PixelViewCanvas.Instance;
-        view.InitView(new Vector2Int(mapSize.x, mapSize.y), Color.black, 6, false);
+        view.InitView(new Vector2Int(mapSize.x, mapSize.y), Color.black, 6);
 
         cells = new Cell[mapSize.x, mapSize.y];
         lastCellsType = new CellType[mapSize.x, mapSize.y];
@@ -48,7 +54,7 @@ public class Game : MonoBehaviour
             {
                 lastCellsType[x, y] = CellType.empty;
 
-                cells[x, y] = new Cell
+                cells[x, y] = new Cell()
                 {
                     pos = new Vector2Int(x, y)
                 };
@@ -80,117 +86,28 @@ public class Game : MonoBehaviour
 
     private void Update()
     {
-        deltaTime += (Time.unscaledDeltaTime - deltaTime) * 0.1f;
 
-        if (!isRunning || nextUpdateTime > Time.time)
+        if (!isCanUpdate || !isRunning || nextUpdateTime > Time.time)
             return;
 
-        nextUpdateTime = Time.time + gameTickInterval;
 
+        isCanUpdate = false;
+        nextUpdateTime = Time.time + stg.Instance.gameTickInterval;
 
-        Iteration_1();
+        Iteration();
         DrawMap();
+
+        isCanUpdate = true;
     }
 
-    /*private void Iteration()
+    private void Iteration()
     {
         if (trees.Count == 0)
         {
-            iterationCount = 0;
             restartsCount++;
-            InitNewGeneration();
-            return;
-        }
-        iterationCount++;
-
-        double treeMaxGenerate = 0;
-        foreach (var tree in trees)
-        {
-            if (tree.isDie)
-            {
-                if (tree.cells.Count == 0)
-                {
-                    removeTrees.Add(tree);
-                }
-                else
-                {
-                    FallSeeds(tree);
-                }
-                continue;
-            }
-
-            if (tree.cells.Count == 1 && tree.age >= 5)
-            {
-                removeTrees.Add(tree);
-            }
-
-
-            if (treeMaxGenerate < tree.cells[0].genome.generation)
-            {
-                treeMaxGenerate = tree.cells[0].genome.generation;
-            }
-
-            int treeIncomeEnergy = 0;
-            bool allIsWood = true;
-            foreach (var cell in tree.cells)
-            {
-                if (cell.cellType == CellType.wood)
-                {
-                    treeIncomeEnergy += GetCellEnergyInc(cell.pos.x, cell.pos.y);
-                }
-                else
-                {
-                    allIsWood = false;
-                    cell.needEnergy -= GetCellEnergyInc(cell.pos.x, cell.pos.y);
-                    if (cell.needEnergy <= 0)
-                    {
-                        SeedGrow(tree, cell);
-                    }
-                }
-            }
-            foreach (var item in growedCells)
-            {
-                tree.cells.Add(item);
-            }
-            growedCells.Clear();
-
-            tree.energy += treeIncomeEnergy;
-            tree.DecreaseEnergy();
-            if (tree.energy < 0 || tree.age > 90 || allIsWood)
-            {
-                if (allIsWood)
-                {
-                    removeTrees.Add(tree);
-                }
-
-                tree.isDie = true;
-                tree.ClearWoodCells();
-                continue;
-            }
-            
-        }
-        foreach (var tree in removeTrees)
-        {
-            tree.ClearAllCells();
-            trees.Remove(tree);
-        }
-        removeTrees.Clear();
-        foreach (var tree in growedTrees)
-        {
-            trees.Add(tree);
-        }
-        growedTrees.Clear();
-
-        maxGeneration = treeMaxGenerate;
-    }*/
-
-    private void Iteration_1()
-    {
-        if (trees.Count == 0)
-        {
             iterationCount = 0;
-            restartsCount++;
             InitNewGeneration();
+
             return;
         }
 
@@ -215,7 +132,7 @@ public class Game : MonoBehaviour
 
                 continue;
             }
-            else if (tree.cells.Count == 1 && tree.age >= 5)
+            else if (tree.cells.Count == 1 && tree.age >= stg.Instance.maxSeedAge)
             {
                 tree.ClearAllCells();
                 ReturnTreeToPool(tree);
@@ -239,14 +156,14 @@ public class Game : MonoBehaviour
                 {
                     treeIncomeEnergy += GetCellEnergyInc(cell.pos.x, cell.pos.y);
                 }
-                else
+                else 
                 {
                     allIsWood = false;
                     cell.needEnergy -= GetCellEnergyInc(cell.pos.x, cell.pos.y);
 
                     if (cell.needEnergy <= 0)
                     {
-                        SeedGrow(tree, cell);
+                        GrowSeed(tree, cell);
                     }
                 }
             }
@@ -259,7 +176,7 @@ public class Game : MonoBehaviour
 
             tree.energy += treeIncomeEnergy;
             tree.DecreaseEnergy();
-            if (tree.energy < 0 || tree.age > 90 || allIsWood)
+            if (allIsWood || tree.energy <= 0 || tree.age >= stg.Instance.maxTreeAge)
             {
                 tree.isDie = true;
                 tree.ClearWoodCells();
@@ -284,10 +201,9 @@ public class Game : MonoBehaviour
         maxGeneration = treeMaxGenerate;
     }
 
-    private void SeedGrow(Tree tree, Cell cell)
+    private void GrowSeed(Tree tree, Cell cell)
     {
-        cell.cellType = CellType.wood;
-
+        int growedSideCount = 0;
         for (int sideNum = 0; sideNum < 4; sideNum++)
         {
 
@@ -330,23 +246,38 @@ public class Game : MonoBehaviour
             if (seedCell.cellType == CellType.fallSeed || 
                 seedCell.cellType == CellType.empty)
             {
-                if(seedCell.cellType == CellType.fallSeed)
+                if (seedCell.cellType == CellType.fallSeed)
                 {
                     seedCell.fallSeedTree.cells.Remove(seedCell);
                 }
+
                 growedCells.Add(seedCell);
-                seedCell.SetInitialValues();
+                seedCell.SetSeedInitialValues();
                 seedCell.CopyGenome(cell.genome);
                 seedCell.activeGen = cell.genome.gens[cell.activeGen].sides[sideNum];
                 seedCell.color = cell.color;
+
+                growedSideCount++;
             }
+        }
+
+        if (stg.Instance.allowSaveSeedIfNoGrowed)
+        {
+            if (growedSideCount > 0)
+            {
+                cell.cellType = CellType.wood;
+            }
+        }
+        else
+        {
+            cell.cellType = CellType.wood;
         }
     }
 
     private int GetCellEnergyInc(int x, int y)
     {
         int maxY = mapSize.y;
-        int energyModify = 3;
+        int energyModify = stg.Instance.sunLevelModify;
 
         for (int currY = y + 1; currY < maxY; currY++)
         {
@@ -359,22 +290,26 @@ public class Game : MonoBehaviour
             }
         }
 
-        return 6 + y > 16 
-            ? 16 * energyModify
-            : (6 + y) * energyModify;
+
+        if (stg.Instance.startSunLevel + y > stg.Instance.maxSunLevel)
+        {
+            return stg.Instance.maxSunLevel * energyModify;
+        }
+        
+        return (stg.Instance.startSunLevel + y) * energyModify;
     }
 
     private void FallSeeds(Tree tree)
     {
         for (int i = 0; i < tree.cells.Count; i++)
         {
-            if(tree.cells[i].cellType == CellType.seed)
+            if (tree.cells[i].cellType == CellType.seed)
             {
                 tree.cells[i].cellType = CellType.fallSeed;
                 tree.cells[i].fallSeedTree = tree;
             }
 
-            if(tree.cells[i].pos.y == 0)
+            if (tree.cells[i].pos.y == 0)
             {
                 var growedTree = GetNewTree();
                 growedTree.SetInitialValues();
@@ -384,13 +319,16 @@ public class Game : MonoBehaviour
                 tree.cells.Remove(tree.cells[i]);
                 i--;
 
-                growedTree.cells[0].SetInitialValues();
+                growedTree.cells[0].SetSeedInitialValues();
                 growedTree.cells[0].genome.generation++;
-                if (growedTree.cells[0].genome.generation % 50 == 0)
+
+                if (growedTree.cells[0].genome.generation 
+                    % stg.Instance.ColorChangeGenerationsNum == 0)
                 {
                     growedTree.cells[0].SetRandomColor();
                 }
-                if(UnityEngine.Random.Range(0,101) < 25)
+
+                if (UnityEngine.Random.Range(0,101) < stg.Instance.mutateGenomeChance)
                 {
                     growedTree.cells[0].MutateGenome();
                 }
@@ -421,6 +359,8 @@ public class Game : MonoBehaviour
 
     private void InitNewGeneration()
     {
+        iterationCount = 0;
+
         view.Clear();
         for (int x = 0; x < mapSize.x; x++)
         {
@@ -450,7 +390,7 @@ public class Game : MonoBehaviour
         tree.SetInitialValues();
 
         tree.cells.Add(cells[x, y]);
-        cells[x, y].SetInitialValues();
+        cells[x, y].SetSeedInitialValues();
         cells[x, y].SetRandomGenome();
 
         return tree;
@@ -465,7 +405,7 @@ public class Game : MonoBehaviour
         {
             for (int x = 0; x < maxX; x++)
             {
-                if(cells[x, y].cellType != lastCellsType[x, y])
+                if (cells[x, y].cellType != lastCellsType[x, y])
                 {
                     if (cells[x, y].cellType == CellType.empty)
                     {
@@ -490,7 +430,7 @@ public class Game : MonoBehaviour
 
     private Tree GetNewTree()
     {
-        if (treesPool.Count != 0)
+        if (treesPool.Count > 0)
         {
             Tree tree = treesPool[0];
             treesPool.RemoveAt(0);
@@ -514,6 +454,7 @@ public class Game : MonoBehaviour
         return true;
     }
 
+
     public void SaveGenomes()
     {
 
@@ -524,17 +465,18 @@ public class Game : MonoBehaviour
 
     }
 
+
     public void SpeedUp()
     {
-        if (gameTickInterval > 0.01f)
+        if (stg.Instance.gameTickInterval > 0)
         {
-            gameTickInterval -= 0.01f;
+            stg.Instance.gameTickInterval -= 0.01f;
         }
     }
 
     public void SpeedDown()
     {
-        gameTickInterval += 0.01f;
+        stg.Instance.gameTickInterval += 0.01f;
     }
 
     public void Restart()

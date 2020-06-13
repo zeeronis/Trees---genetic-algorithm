@@ -18,9 +18,7 @@ public class PixelViewCanvas: MonoBehaviour
     [SerializeField] private Image backgroundImage;
 
     private int pixelSize;
-    private bool pixelsOutlineEnable;
     private Color defaultPixelsColor = Color.gray;
-    private Color defaultPixelsOutline = Color.white;
     public Color defaultBackgroundColor = Color.black;
 
     private Vector2Int mapSize;
@@ -74,9 +72,8 @@ public class PixelViewCanvas: MonoBehaviour
         }
     }
 
-    public void InitView(Vector2Int _mapSize, int _pixelSize = 6, bool _pixelOutlineEnable = true)
+    public void InitView(Vector2Int _mapSize, int _pixelSize = 6)
     {
-        pixelsOutlineEnable = _pixelOutlineEnable;
         pixelSize = _pixelSize;
         mapSize = _mapSize;
 
@@ -104,16 +101,16 @@ public class PixelViewCanvas: MonoBehaviour
         }
     }
 
-    public void InitView(Vector2Int _mapSize, Color32 _defaultPixelsColor,  int _pixelSize = 6, bool _pixelOutlineEnable = true)
+    public void InitView(Vector2Int _mapSize, Color32 _defaultPixelsColor,  int _pixelSize = 6)
     {
         defaultPixelsColor = _defaultPixelsColor;
-        InitView(_mapSize, _pixelSize, _pixelOutlineEnable);
+        InitView(_mapSize, _pixelSize);
     }
 
-    public void InitView(Vector2Int _mapSize, Color32 _defaultPixelsColor, Color32 _defaultbackgroundColor, int _pixelSize = 6, bool _pixelOutlineEnable = true)
+    public void InitView(Vector2Int _mapSize, Color32 _defaultPixelsColor, Color32 _defaultbackgroundColor, int _pixelSize = 6)
     {
         defaultBackgroundColor = _defaultbackgroundColor;
-        InitView(_mapSize, _defaultPixelsColor, _pixelSize, _pixelOutlineEnable);
+        InitView(_mapSize, _defaultPixelsColor, _pixelSize);
     }
 }
 

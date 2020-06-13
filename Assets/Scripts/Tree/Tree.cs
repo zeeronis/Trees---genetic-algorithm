@@ -3,25 +3,28 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+using stg = SimSettings;
 
 public class Tree
 {
-    public bool isDie;
     public int age;
     public int energy;
+    public bool isDie;
+
     public List<Cell> cells = new List<Cell>();
+
 
     public void SetInitialValues()
     {
-        isDie = false;
         age = 0;
-        energy = 300;
+        isDie = false;
+        energy = stg.Instance.startTreeEnergy;
     }
 
     public void DecreaseEnergy()
     {
         age++;
-        energy -= cells.Count * 13;
+        energy -= cells.Count * stg.Instance.reqEnergyForLife;
     }
 
     public void ClearAllCells()
